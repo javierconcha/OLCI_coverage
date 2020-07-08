@@ -97,12 +97,23 @@ def main():
     # create Dataframe    
     cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
     df = pd.DataFrame(columns = cols) 
+    
     year_str = '2020'
-    doy_list = ['153','154']
-    for doy_str in doy_list:
-        path_to_doy = os.path.join(path_source,year_str,doy_str)
-        path_to_list = create_list_products(path_to_doy,path_out)
-        df = extract_geo_info(path_to_list,df)
+    sdoy = 153
+    edoy = 188
+    
+    for doy in range(sdoy,edoy):
+        print('-----------')
+        
+        
+        path_to_doy = os.path.join(path_source,year_str,str(doy))
+        if os.path.isdir(path_to_doy):
+            print(f'Extracting {year_str} {str(doy)}')
+            path_to_list = create_list_products(path_to_doy,path_out)
+            df = extract_geo_info(path_to_list,df)
+        else:
+            print(f'Warning: Directory {year_str} {str(doy)} does not exist.')
+            
         
     # print(df[['sensor','datetimestr']])
     
