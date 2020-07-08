@@ -102,7 +102,7 @@ def main():
     sdoy = 153
     edoy = 188
     
-    for doy in range(sdoy,edoy):
+    for doy in range(sdoy,edoy+1):
         print('-----------')
         
         
