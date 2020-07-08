@@ -34,8 +34,6 @@ import cartopy.io.shapereader as shapereader
 import pandas as pd
 from matplotlib.lines import Line2D
 
-
-
 # import cartopy.crs as ccrs
 # from descartes import PolygonPatch
 
@@ -69,14 +67,8 @@ def draw_polygon(lats,lons,m,sensor):
     return m, poly_all
 
 
-def create_list_products(path_source,path_out):
-    cmd = f'find {path_source} -name "*OL_2_WFR*trim_MED*"> {path_out}/file_list.txt'
-    prog = subprocess.Popen(cmd, shell=True,stderr=subprocess.PIPE)
-    out, err = prog.communicate()
-    if err:
-        print(err)  
-    path_to_list = f'{path_out}/file_list.txt'
-    return path_to_list
+
+    
 def create_MED_shp(path_to_shp):
     #find the MED polygon. 
     for sea in shapereader.Reader(path_to_shp).records(): 
@@ -223,16 +215,16 @@ def main():
         path_out = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Call_ESA_MED/Figures'
     else:
         print('Error: host flag is not either mac or vm')
-    cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
-    df = pd.DataFrame(columns = cols)        
+    # cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
+    # df = pd.DataFrame(columns = cols)      
    
     year_str = '2020'
     doy_list = ['153','154']
     for doy_str in doy_list:
+        path_to_csv
         path_to_doy_folder = os.path.join(path_source,year_str,doy_str)
         path_to_list = create_list_products(path_to_doy_folder,path_out)
         df,date, S3Apoly, S3Bpoly = coverage(path_to_list,path_out,df)  
-
 
 #%%
 if __name__ == '__main__':
