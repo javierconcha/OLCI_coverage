@@ -118,7 +118,7 @@ def main():
     # print(df[['sensor','datetimestr']])
     
     csv_filename = os.path.join(path_out,'OLCI_geo_info.csv')
-    df.to_csv(csv_filename)
+    df.to_csv(csv_filename,index=False)
 #%%
 if __name__ == '__main__':
     main()
