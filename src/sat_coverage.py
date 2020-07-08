@@ -19,22 +19,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-import numpy as np
+# import numpy as np
 from netCDF4 import Dataset
 from matplotlib import pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import os.path
 import os
 import subprocess
+import sys
 
 import matplotlib.patches
 import shapely.geometry
+import cartopy.io.shapereader as shapereader
 import pandas as pd
 from matplotlib.lines import Line2D
-import cartopy.crs as ccrs
-import cartopy.io.shapereader as shapereader
 
-from descartes import PolygonPatch
+
+
+# import cartopy.crs as ccrs
+# from descartes import PolygonPatch
 
 def create_map():
     lat_min = 10
@@ -99,7 +102,7 @@ def create_MED_shp(path_to_shp):
     Med = MedE.union(MedW).union(Adri).union(Aege).union(Ligu).union(Ioni).union(Tyrr).union(Bale).union(Albo) 
     return Med           
         
-def coverage(path_to_list,df):
+def coverage(path_to_list,path_out,df):
     # create empty polygons per each sensor
     S3Apoly = shapely.geometry.Polygon()
     S3Bpoly = shapely.geometry.Polygon()
@@ -211,20 +214,26 @@ def coverage_calc(date,S3Apoly, S3Bpoly):
     
     return AB_union_perc, AB_inter_perc       
 #%%
-# def main():
-# plot_footprint(var,lat,lon)
-cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
-df = pd.DataFrame(columns = cols)        
-path_source = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Images/OLCI/trimmed_sources'
-path_out = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Call_ESA_MED/Figures'
-
-year_str = '2020'
-doy_list = ['153','154']
-for doy_str in doy_list:
-    path_to_doy_folder = os.path.join(path_source,year_str,doy_str)
-    path_to_list = create_list_products(path_to_doy_folder,path_out)
-    df,date, S3Apoly, S3Bpoly = coverage(path_to_list,df)  
+def main():
+    if sys.platform == 'linux': 
+        path_source = '/dst04-data1/OC/OLCI/trimmed_sources'
+        path_out = '/home/Javier.Concha/OLCI_coverage/Figures'  
+    elif sys.platform == 'darwin':
+        path_source = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Images/OLCI/trimmed_sources'
+        path_out = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Call_ESA_MED/Figures'
+    else:
+        print('Error: host flag is not either mac or vm')
+    cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
+    df = pd.DataFrame(columns = cols)        
+   
+    year_str = '2020'
+    doy_list = ['153','154']
+    for doy_str in doy_list:
+        path_to_doy_folder = os.path.join(path_source,year_str,doy_str)
+        path_to_list = create_list_products(path_to_doy_folder,path_out)
+        df,date, S3Apoly, S3Bpoly = coverage(path_to_list,path_out,df)  
 
 
 #%%
-
+if __name__ == '__main__':
+    main()
