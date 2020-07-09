@@ -19,13 +19,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-# import numpy as np
-from netCDF4 import Dataset
 from matplotlib import pyplot as plt
 from mpl_toolkits.basemap import Basemap
 import os.path
 import os
-import subprocess
 import sys
 
 import matplotlib.patches
@@ -94,85 +91,58 @@ def create_MED_shp(path_to_shp):
     Med = MedE.union(MedW).union(Adri).union(Aege).union(Ligu).union(Ioni).union(Tyrr).union(Bale).union(Albo) 
     return Med           
         
-def coverage(path_to_list,path_out,df):
+def coverage(path_out,df_doy,df_coverage):
     # create empty polygons per each sensor
     S3Apoly = shapely.geometry.Polygon()
     S3Bpoly = shapely.geometry.Polygon()
     m = create_map()
     
-    # open list to files
-    with open(path_to_list,'r') as file:
-        for cnt, line in enumerate(file):   
-            path_im = line[:-1]
-            coordinates_filename = 'geo_coordinates.nc'
-            filepah = os.path.join(path_im,coordinates_filename)
-            nc_f0 = Dataset(filepah,'r')
-            lat = nc_f0.variables['latitude'][:,:]
-            lon = nc_f0.variables['longitude'][:,:]
-            
-            UL_lat = lat[0,0]
-            UL_lon = lon[0,0]
-            UR_lat = lat[0,-1]
-            UR_lon = lon[0,-1]
-            LL_lat = lat[-1,0]
-            LL_lon = lon[-1,0]
-            LR_lat = lat[-1,-1]
-            LR_lon = lon[-1,-1]
-            
-            lats_poly =[UL_lat,UR_lat,LR_lat,LL_lat]
-            lons_poly =[UL_lon,UR_lon,LR_lon,LL_lon]
-            
-            #%% create csv
-            sensor = path_im.split('/')[-1].split('_')[0]
-            datetimestr = path_im.split('/')[-1].split('_')[7]
-            date =  datetimestr.split('T')[0]
-            time = datetimestr.split('T')[1]
-            doy = path_im.split('/')[-2]
-            filename = path_im.split('/')[-1]
-            
-            granule = {
-                    'sensor': sensor,
-                    'datetimestr': datetimestr,
-                    'date': date,
-                    'time': time,
-                    'doy': doy,
-                    'UL_lat': UL_lat,
-                    'UL_lon': UL_lon,
-                    'UR_lat': UR_lat,
-                    'UR_lon': UR_lon,
-                    'LL_lat': LL_lat,
-                    'LL_lon': LL_lon,
-                    'LR_lat': LR_lat,
-                    'LR_lon': LR_lon,
-                    'filename': filename,
-                    'filepah':   path_im
-                    }
-            
-            df = df.append(granule,ignore_index=True) 
+    for row in df_doy.itertuples(index=True, name='Pandas'):
+        # extract data from dataframe
+        UL_lat = row.UL_lat
+        UL_lon = row.UL_lon
+        UR_lat = row.UR_lat
+        UR_lon = row.UR_lon
+        LL_lat = row.LL_lat
+        LL_lon = row.LL_lon
+        LR_lat = row.LR_lat
+        LR_lon = row.LR_lon    
+        sensor = row.sensor
+        date = row.date   
 
-            # draw map
-            m, poly = draw_polygon(lats_poly,lons_poly,m,sensor)
-            if sensor == 'S3A':
-                S3Apoly = S3Apoly.union(poly)
-            elif sensor == 'S3B':
-                S3Bpoly = S3Bpoly.union(poly)
-            plt.gcf()
-            custom_lines = [Line2D([0], [0], color='red', lw=4),
-                Line2D([0], [0], color='blue', lw=4)]
+        # draw map
+        lats_poly =[UL_lat,UR_lat,LR_lat,LL_lat]
+        lons_poly =[UL_lon,UR_lon,LR_lon,LL_lon]
+        m, poly = draw_polygon(lats_poly,lons_poly,m,sensor)
+        if sensor == 'S3A':
+            S3Apoly = S3Apoly.union(poly)
+        elif sensor == 'S3B':
+            S3Bpoly = S3Bpoly.union(poly)
+        plt.gcf()
+        custom_lines = [Line2D([0], [0], color='red', lw=4),
+            Line2D([0], [0], color='blue', lw=4)]
 
-            plt.legend(custom_lines, ['S3A', 'S3B'],loc='upper left')
+        plt.legend(custom_lines, ['S3A', 'S3B'],loc='upper left')
             
     # calculate coverage percentage
     AB_union_perc, AB_inter_perc = coverage_calc(date,S3Apoly, S3Bpoly)
     
     # save figure
     plt.gcf()
-    ofname = os.path.join(path_out,date+'_coverage.pdf')
+    ofname = os.path.join(path_out,str(date)+'_coverage.pdf')
     plt.savefig(ofname, dpi=200)
     
     plt.close()
+    
+    row_percentage = {
+        'date': str(date),
+        'A union B': AB_union_perc,
+        'A interc B': AB_inter_perc
+        }
+    
+    df_coverage = df_coverage.append(row_percentage,ignore_index=True) 
         
-    return df, date, S3Apoly, S3Bpoly
+    return df_coverage,S3Apoly, S3Bpoly
 
 def coverage_calc(date,S3Apoly, S3Bpoly):
     # #create figure
@@ -206,26 +176,38 @@ def coverage_calc(date,S3Apoly, S3Bpoly):
     
     return AB_union_perc, AB_inter_perc       
 #%%
-def main():
-    if sys.platform == 'linux': 
-        path_source = '/dst04-data1/OC/OLCI/trimmed_sources'
-        path_out = '/home/Javier.Concha/OLCI_coverage/Figures'  
-    elif sys.platform == 'darwin':
-        path_source = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Images/OLCI/trimmed_sources'
-        path_out = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Call_ESA_MED/Figures'
-    else:
-        print('Error: host flag is not either mac or vm')
-    # cols = ['sensor','datetimestr','date','time','doy','UL_lat','UL_lon','UR_lat','UR_lon','LL_lat','LL_lon','LR_lat','LR_lon','filename','filepah']
-    # df = pd.DataFrame(columns = cols)      
-   
-    year_str = '2020'
-    doy_list = ['153','154']
-    for doy_str in doy_list:
-        path_to_csv
-        path_to_doy_folder = os.path.join(path_source,year_str,doy_str)
-        path_to_list = create_list_products(path_to_doy_folder,path_out)
-        df,date, S3Apoly, S3Bpoly = coverage(path_to_list,path_out,df)  
+# def main():
+if sys.platform == 'linux': 
+    path_source = '/dst04-data1/OC/OLCI/trimmed_sources'
+    path_out = '/home/Javier.Concha/OLCI_coverage/Figures'  
+elif sys.platform == 'darwin':
+    path_source = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Images/OLCI/trimmed_sources'
+    path_out = '/Users/javier.concha/Desktop/Javier/2019_Roma/CNR_Research/Call_ESA_MED/Figures'
+else:
+    print('Error: host flag is not either mac or vm')   
 
+    # create Dataframe    
+cols = ['date','A union B','A interc B']
+df_coverage = pd.DataFrame(columns = cols) 
+  
+csv_filename = os.path.join(path_out,'OLCI_geo_info_ALL.csv')
+df = pd.read_csv(csv_filename)
+
+year_str = '2020'
+sdoy = 148
+edoy = 183
+
+for doy in range(sdoy,edoy+1):
+    
+    
+    if not df.loc[df['doy'] == doy].empty:
+        df_doy = df.loc[df['doy'] == doy]
+        print('-----------')
+        print(df_doy)
+        df_coverage, S3Apoly, S3Bpoly = coverage(path_out,df_doy,df_coverage)  
+
+csv_coverage_filaname = os.path.join(path_out,'OLCI_coverage_info.csv')
+df_coverage.round({'A union B':1,'A interc B':1}).to_csv(csv_coverage_filaname)
 #%%
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
