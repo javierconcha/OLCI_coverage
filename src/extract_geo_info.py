@@ -99,20 +99,25 @@ def main():
     df = pd.DataFrame(columns = cols) 
     
     year_str = '2020'
-    sdoy = 153
-    edoy = 188
+    sdoy = 1
+    edoy = 366
     
     for doy in range(sdoy,edoy+1):
         print('-----------')
         
-        
-        path_to_doy = os.path.join(path_source,year_str,str(doy))
+        doy_str = str(doy)
+        if doy<100:
+            if doy<10:
+                doy_str = '00'+ doy_str
+            else:
+                doy_str = '0'+ doy_str
+        path_to_doy = os.path.join(path_source,year_str,doy_str)
         if os.path.isdir(path_to_doy):
-            print(f'Extracting {year_str} {str(doy)}')
+            print(f'Extracting {year_str} {doy_str}')
             path_to_list = create_list_products(path_to_doy,path_out)
             df = extract_geo_info(path_to_list,df)
         else:
-            print(f'Warning: Directory {year_str} {str(doy)} does not exist.')
+            print(f'Warning: Directory {year_str} {doy_str} does not exist.')
             
         
     # print(df[['sensor','datetimestr']])
